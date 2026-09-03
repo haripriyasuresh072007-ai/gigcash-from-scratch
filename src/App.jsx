@@ -34,11 +34,6 @@ function App() {
     loanAmount - amountRepaid
   )
 
-  const completeLoan = () => {
-    setActiveLoan(false)
-    setFinalStatus(true)
-  }
-
   // FINAL STATUS
   if (finalStatus) {
     return (
@@ -275,6 +270,7 @@ function App() {
                           </span>
                         )}
                       </div>
+
                     </div>
                   )
                 }
@@ -306,6 +302,7 @@ function App() {
 
             {paused && remainingBalance > 0 && (
               <div>
+
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
                   <p className="text-yellow-400 font-semibold">
                     ⏸ Repayment Paused
@@ -328,16 +325,15 @@ function App() {
                     setRepaidWeeks(nextWeeks)
 
                     if (nextWeeks >= repaymentPeriod) {
-                      setTimeout(() => {
-                        setActiveLoan(false)
-                        setFinalStatus(true)
-                      }, 300)
+                      setActiveLoan(false)
+                      setFinalStatus(true)
                     }
                   }}
                   className="w-full bg-white text-slate-950 font-semibold py-3 rounded-xl hover:bg-slate-200 transition"
                 >
                   Resume & Make Next Payment
                 </button>
+
               </div>
             )}
 
@@ -813,7 +809,63 @@ function App() {
                 />
 
                 <button
-                  onClick={() => setOtpSent(true)}
+                  onClick={async () => {
+                    const cleanPhone = phone.trim()
+
+                    if (!cleanPhone) {
+                      alert("Please enter your phone number")
+                      return
+                    }
+
+                    try {
+                      console.log(
+                        "Sending OTP request for:",
+                        cleanPhone
+                      )
+
+                      const response = await fetch(
+                        "http://localhost:4000/api/auth/send-otp",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            phone: cleanPhone,
+                          }),
+                        }
+                      )
+
+                      const data = await response.json()
+
+                      console.log(
+                        "Backend response:",
+                        data
+                      )
+
+                      if (response.ok && data.success) {
+                        alert(
+                          "OTP sent successfully. Demo OTP: 123456"
+                        )
+
+                        setOtpSent(true)
+                      } else {
+                        alert(
+                          data.message ||
+                            "Failed to send OTP"
+                        )
+                      }
+                    } catch (error) {
+                      console.error(
+                        "OTP request failed:",
+                        error
+                      )
+
+                      alert(
+                        "Could not connect to GigCash backend. Make sure the backend is running on port 4000."
+                      )
+                    }
+                  }}
                   className="w-full bg-white text-slate-950 font-semibold py-3 rounded-xl mt-4 hover:bg-slate-200 transition"
                 >
                   Send OTP
@@ -822,7 +874,10 @@ function App() {
             ) : (
               <>
                 <p className="text-slate-400 mt-3">
-                  Demo OTP: <span className="text-white font-semibold">123456</span>
+                  Demo OTP:{" "}
+                  <span className="text-white font-semibold">
+                    123456
+                  </span>
                 </p>
 
                 <input
@@ -839,6 +894,8 @@ function App() {
                   onClick={() => {
                     if (otp === "123456") {
                       setVerified(true)
+                    } else {
+                      alert("Invalid OTP")
                     }
                   }}
                   className="w-full bg-white text-slate-950 font-semibold py-3 rounded-xl mt-4 hover:bg-slate-200 transition"
