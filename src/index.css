@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@theme {
+  /* Backgrounds & surfaces — deep ink navy, not pure black */
+  --color-ink: #0f1420;
+  --color-surface: #161d2e;
+  --color-surface-2: #1e2740;
+  --color-line: #2a3552;
+
+  /* Text */
+  --color-cream: #f5f3ef;
+  --color-muted: #98a2b8;
+
+  /* Brand primary — warm "cash" gold, not neon green */
+  --color-gold: #d9a441;
+  --color-gold-strong: #c08a2e;
+
+  /* Semantic accents, each reserved for one job */
+  --color-sage: #5fae8c;   /* success / positive / paid */
+  --color-amber: #e0913c;  /* caution / rainy-day / review */
+  --color-coral: #d96e6e;  /* error / danger */
+  --color-sky: #6ea3d8;    /* informational */
+  --color-plum: #9b86d9;   /* "smart" / adaptive recommendation features */
+
+  /* Typography */
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  background-color: var(--color-ink);
+}
