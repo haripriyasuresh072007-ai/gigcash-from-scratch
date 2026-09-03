@@ -8,12 +8,14 @@ function App() {
   const [verified, setVerified] = useState(false)
 
   const [consented, setConsented] = useState(false)
+  const [consentChecked, setConsentChecked] = useState(false)
   const [dashboard, setDashboard] = useState(false)
   const [loanApplication, setLoanApplication] = useState(false)
   const [eligibility, setEligibility] = useState(false)
   const [repayment, setRepayment] = useState(false)
   const [activeLoan, setActiveLoan] = useState(false)
   const [finalStatus, setFinalStatus] = useState(false)
+  const [adminDashboard, setAdminDashboard] = useState(false)
 
   const [loanAmount, setLoanAmount] = useState(2000)
   const [loanPurpose, setLoanPurpose] = useState("")
@@ -21,6 +23,8 @@ function App() {
 
   const [paused, setPaused] = useState(false)
   const [repaidWeeks, setRepaidWeeks] = useState(1)
+  const [flexibleRepayment, setFlexibleRepayment] = useState(false)
+  const [reducedPayment, setReducedPayment] = useState(false)
   const [incomeFloor, setIncomeFloor] = useState(4500)
   const [bufferUsed, setBufferUsed] = useState(false)
 
@@ -35,6 +39,11 @@ function App() {
   const bufferAmountUsed = Math.min(bufferSupportNeeded, safeToSave)
   const remainingAfterBuffer = Math.max(0, bufferSupportNeeded - safeToSave)
   const recommendedCreditLimit = Math.min(5000, Math.max(500, Math.floor(safeToUseAmount * 0.65)))
+  const adaptiveCreditAmount = Math.min(
+    recommendedCreditLimit,
+    Math.max(500, Math.floor(safeToUseAmount * 0.5))
+  )
+  const adaptiveWeeklyRepayment = Math.ceil(adaptiveCreditAmount / repaymentPeriod)
 
   // Explainable GigCash Score
   const incomeStabilityPoints = 180
@@ -61,6 +70,191 @@ function App() {
     0,
     loanAmount - amountRepaid
   )
+
+  // ADMIN DASHBOARD
+  if (adminDashboard) {
+    const applications = [
+      {
+        worker: "Worker A",
+        amount: 1500,
+        score: 742,
+        anomaly: "Clear",
+        income: "Stable",
+        decision: "Eligible",
+        reason: "Income covers essential expenses and repayment capacity is healthy.",
+      },
+      {
+        worker: "Worker B",
+        amount: 4000,
+        score: 618,
+        anomaly: "Review",
+        income: "Rainy Week",
+        decision: "Under Review",
+        reason: "Requested amount is above the safer range and income is below the selected floor.",
+      },
+      {
+        worker: "Worker C",
+        amount: 2500,
+        score: 701,
+        anomaly: "Clear",
+        income: "Stable",
+        decision: "Eligible",
+        reason: "Good income stability with sufficient repayment capacity.",
+      },
+    ]
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-white px-6 py-10">
+        <div className="max-w-6xl mx-auto">
+
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div>
+              <p className="text-green-400 font-semibold">GigCash</p>
+              <h1 className="text-3xl font-bold mt-2">
+                Admin Dashboard
+              </h1>
+              <p className="text-slate-400 mt-2">
+                Review simulated applications using explainable risk signals.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setAdminDashboard(false)}
+              className="bg-slate-800 text-white font-semibold px-5 py-3 rounded-xl hover:bg-slate-700 transition"
+            >
+              Back to App
+            </button>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <p className="text-slate-400 text-sm">Applications</p>
+              <p className="text-3xl font-bold mt-2">3</p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <p className="text-slate-400 text-sm">Eligible</p>
+              <p className="text-3xl font-bold text-green-400 mt-2">2</p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <p className="text-slate-400 text-sm">Under Review</p>
+              <p className="text-3xl font-bold text-yellow-400 mt-2">1</p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <p className="text-slate-400 text-sm">Average Score</p>
+              <p className="text-3xl font-bold text-blue-400 mt-2">687</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-7">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-semibold">
+                  Application Review
+                </h2>
+                <p className="text-sm text-slate-400 mt-1">
+                  Decisions are based on transparent simulated signals.
+                </p>
+              </div>
+
+              <span className="text-xs text-green-400 font-semibold border border-green-500/30 rounded-full px-3 py-1">
+                Explainable
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {applications.map((application) => (
+                <div
+                  key={application.worker}
+                  className="bg-slate-800 rounded-2xl p-5"
+                >
+                  <div className="grid lg:grid-cols-7 gap-4 items-center">
+
+                    <div>
+                      <p className="text-xs text-slate-400">Worker</p>
+                      <p className="font-semibold mt-1">
+                        👤 {application.worker}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Loan Amount</p>
+                      <p className="font-semibold mt-1">
+                        ₹{application.amount}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">GigCash Score</p>
+                      <p className="font-semibold mt-1">
+                        {application.score}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Anomaly</p>
+                      <p className={`font-semibold mt-1 ${
+                        application.anomaly === "Clear"
+                          ? "text-green-400"
+                          : "text-yellow-400"
+                      }`}>
+                        {application.anomaly === "Clear" ? "✓ " : "⚠️ "}
+                        {application.anomaly}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Income</p>
+                      <p className="font-semibold mt-1">
+                        {application.income}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Decision</p>
+                      <p className={`font-semibold mt-1 ${
+                        application.decision === "Eligible"
+                          ? "text-green-400"
+                          : "text-yellow-400"
+                      }`}>
+                        {application.decision}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-400">Reason</p>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        {application.reason}
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 mt-6">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                <span className="text-blue-400 font-semibold">
+                  🔍 Reviewer guidance:
+                </span>{" "}
+                An anomaly flag does not automatically mean fraud or rejection.
+                It indicates that the simulated application may need additional
+                human review.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-center text-slate-500 text-sm mt-6">
+            Demo admin dashboard — simulated applications only.
+          </p>
+
+        </div>
+      </div>
+    )
+  }
 
   // FINAL STATUS
   if (finalStatus) {
@@ -426,6 +620,84 @@ function App() {
 
           </div>
 
+          <div className="bg-slate-900 border border-blue-500/30 rounded-3xl p-7 mb-6">
+            <p className="text-blue-400 text-sm font-semibold tracking-wide">
+              💳 SMART REPAYMENT FLEXIBILITY
+            </p>
+
+            <h2 className="text-xl font-semibold mt-2">
+              Choose a payment that fits this week
+            </h2>
+
+            <p className="text-slate-400 mt-2 leading-relaxed">
+              GigCash can adjust repayment when your income is weaker. You stay
+              on track without being forced into the same payment every week.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <button
+                onClick={() => {
+                  setFlexibleRepayment(false)
+                  setReducedPayment(false)
+                }}
+                className={`text-left rounded-2xl p-5 border transition ${
+                  !flexibleRepayment && !reducedPayment
+                    ? "border-green-500/50 bg-green-500/10"
+                    : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                }`}
+              >
+                <p className="font-semibold">✓ Normal Payment</p>
+                <p className="text-2xl font-bold mt-2">₹{weeklyRepayment}</p>
+                <p className="text-sm text-slate-400 mt-2">
+                  Best when this week's income is stable.
+                </p>
+              </button>
+
+              <button
+                onClick={() => {
+                  setFlexibleRepayment(true)
+                  setReducedPayment(true)
+                }}
+                className={`text-left rounded-2xl p-5 border transition ${
+                  reducedPayment
+                    ? "border-blue-500/50 bg-blue-500/10"
+                    : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                }`}
+              >
+                <p className="font-semibold">↘ Reduced Payment</p>
+                <p className="text-2xl font-bold mt-2">
+                  ₹{Math.ceil(weeklyRepayment * 0.5)}
+                </p>
+                <p className="text-sm text-slate-400 mt-2">
+                  Pay 50% this week and carry the remaining amount forward.
+                </p>
+              </button>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mt-5">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                <span className="text-blue-400 font-semibold">Why flexible repayment?</span>{" "}
+                When income is unpredictable, a fixed payment can create extra
+                pressure. GigCash allows a reduced payment during a weaker week
+                and moves the remaining amount to a later payment instead of
+                forcing a new loan.
+              </p>
+            </div>
+
+            {reducedPayment && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mt-4">
+                <p className="text-emerald-400 font-semibold">
+                  ✓ Reduced repayment selected
+                </p>
+                <p className="text-sm text-slate-300 mt-1">
+                  This week's simulated payment is ₹{Math.ceil(weeklyRepayment * 0.5)}.
+                  The remaining ₹{weeklyRepayment - Math.ceil(weeklyRepayment * 0.5)}
+                  {" "}will be carried forward.
+                </p>
+              </div>
+            )}
+          </div>
+
           <p className="text-center text-slate-500 text-sm mt-6">
             Demo simulation — no real money is transferred.
           </p>
@@ -609,6 +881,40 @@ function App() {
               </div>
             </div>
 
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 mt-5 text-left">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🛡️</div>
+
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    Essential Expense Protection
+                  </h3>
+
+                  <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                    GigCash protects essential expenses such as rent, food, and basic
+                    work needs before considering how much you can safely repay.
+                  </p>
+
+                  <div className="grid md:grid-cols-3 gap-3 mt-4">
+                    <div className="bg-slate-800 rounded-xl p-3">
+                      <p className="text-xs text-slate-400">Priority 1</p>
+                      <p className="font-semibold mt-1">🏠 Rent</p>
+                    </div>
+
+                    <div className="bg-slate-800 rounded-xl p-3">
+                      <p className="text-xs text-slate-400">Priority 2</p>
+                      <p className="font-semibold mt-1">🍱 Food & Essentials</p>
+                    </div>
+
+                    <div className="bg-slate-800 rounded-xl p-3">
+                      <p className="text-xs text-slate-400">Priority 3</p>
+                      <p className="font-semibold mt-1">🛵 Work Expenses</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button
               onClick={() => {
                 setEligibility(false)
@@ -652,6 +958,36 @@ function App() {
             </p>
           </div>
 
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">💡</div>
+
+              <div className="flex-1">
+                <p className="text-blue-400 text-sm font-semibold tracking-wide">
+                  ADAPTIVE CREDIT AMOUNT
+                </p>
+
+                <h2 className="text-xl font-semibold mt-1">
+                  Recommended for you: ₹{adaptiveCreditAmount}
+                </h2>
+
+                <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+                  This amount keeps the simulated weekly repayment at about
+                  ₹{adaptiveWeeklyRepayment} while protecting your essential
+                  expenses and staying within your safer credit range.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setLoanAmount(adaptiveCreditAmount)}
+                  className="bg-white text-slate-950 font-semibold px-5 py-2.5 rounded-xl mt-4 hover:bg-slate-200 transition"
+                >
+                  Use Recommended Amount
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-7">
 
             <label className="block text-sm text-slate-300 mb-2">
@@ -669,9 +1005,15 @@ function App() {
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 mb-6"
             />
 
-            <label className="block text-sm text-slate-300 mb-2">
-              Purpose
-            </label>
+            <div className="mb-3">
+              <label className="block text-sm text-slate-300">
+                Loan Purpose
+              </label>
+
+              <p className="text-xs text-slate-500 mt-1">
+                Essential needs are prioritised to reduce financial stress.
+              </p>
+            </div>
 
             <select
               value={loanPurpose}
@@ -700,6 +1042,48 @@ function App() {
                 Emergency
               </option>
             </select>
+
+            {loanAmount > adaptiveCreditAmount && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">⚠️</div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg text-yellow-400">
+                      Responsible Borrowing Guidance
+                    </h3>
+
+                    <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+                      Your requested amount of ₹{loanAmount} is above the
+                      recommended amount of ₹{adaptiveCreditAmount}. A higher
+                      loan can increase weekly repayment pressure.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <div className="bg-slate-800 rounded-xl p-4">
+                        <p className="text-xs text-slate-400">Requested</p>
+                        <p className="text-xl font-bold mt-1">₹{loanAmount}</p>
+                      </div>
+
+                      <div className="bg-slate-800 rounded-xl p-4">
+                        <p className="text-xs text-slate-400">Recommended</p>
+                        <p className="text-xl font-bold text-green-400 mt-1">
+                          ₹{adaptiveCreditAmount}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setLoanAmount(adaptiveCreditAmount)}
+                      className="w-full bg-yellow-400 text-slate-950 font-semibold py-3 rounded-xl mt-4 hover:bg-yellow-300 transition"
+                    >
+                      Reduce to Recommended Amount
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => {
@@ -927,6 +1311,59 @@ function App() {
 
           </div>
 
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-7 mt-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-emerald-400 text-sm font-semibold tracking-wide">
+                  🩺 GIGCASH FINANCIAL HEALTH
+                </p>
+
+                <h2 className="text-2xl font-semibold mt-2">
+                  Your financial health is stable
+                </h2>
+
+                <p className="text-slate-400 mt-2 leading-relaxed">
+                  Your simulated income covers essential expenses and leaves
+                  room for responsible repayment and buffer protection.
+                </p>
+              </div>
+
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-2">
+                <span className="text-emerald-400 font-bold">🟢 Stable</span>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-4 gap-3 mt-6">
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <p className="text-slate-400 text-xs">Income Stability</p>
+                <p className="text-lg font-bold text-green-400 mt-2">Good</p>
+              </div>
+
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <p className="text-slate-400 text-xs">Expense Coverage</p>
+                <p className="text-lg font-bold text-green-400 mt-2">Covered</p>
+              </div>
+
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <p className="text-slate-400 text-xs">Buffer Protection</p>
+                <p className="text-lg font-bold text-blue-400 mt-2">Active</p>
+              </div>
+
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <p className="text-slate-400 text-xs">Repayment Capacity</p>
+                <p className="text-lg font-bold text-green-400 mt-2">Good</p>
+              </div>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mt-5">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                <span className="text-blue-400 font-semibold">💡 Recommended Action:</span>{" "}
+                Keep building your income buffer and borrow only within your
+                safer credit range.
+              </p>
+            </div>
+          </div>
+
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-7 mt-6">
 
             <h2 className="text-xl font-semibold mb-4">
@@ -976,6 +1413,13 @@ function App() {
             Apply for Credit
           </button>
 
+          <button
+            onClick={() => setAdminDashboard(true)}
+            className="w-full bg-slate-800 text-white font-semibold py-3 rounded-xl mt-3 hover:bg-slate-700 transition"
+          >
+            Open Admin Dashboard
+          </button>
+
         </div>
       </div>
     )
@@ -1018,14 +1462,32 @@ function App() {
 
             </div>
 
+            <label className="flex items-start gap-3 mt-7 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-green-500"
+              />
+              <span className="text-sm text-slate-300 leading-relaxed">
+                I understand and agree to GigCash using my earnings information
+                for responsible credit assessment.
+              </span>
+            </label>
+
             <button
+              disabled={!consentChecked}
               onClick={() => {
                 setConsented(false)
                 setDashboard(true)
               }}
-              className="w-full bg-white text-slate-950 font-semibold py-3 rounded-xl mt-7 hover:bg-slate-200 transition"
+              className={`w-full font-semibold py-3 rounded-xl mt-5 transition ${
+                consentChecked
+                  ? "bg-white text-slate-950 hover:bg-slate-200"
+                  : "bg-slate-700 text-slate-500 cursor-not-allowed"
+              }`}
             >
-              I Agree & Continue
+              Continue
             </button>
 
           </div>
