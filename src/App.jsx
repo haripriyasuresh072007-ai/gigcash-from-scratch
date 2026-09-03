@@ -21,6 +21,34 @@ function App() {
 
   const [paused, setPaused] = useState(false)
   const [repaidWeeks, setRepaidWeeks] = useState(1)
+  const [incomeFloor, setIncomeFloor] = useState(4500)
+  const [bufferUsed, setBufferUsed] = useState(false)
+
+  // Income and responsible borrowing calculations
+  const averageWeeklyIncome = 6800
+  const essentialExpenses = 4500
+  const safeToUseAmount = Math.max(0, averageWeeklyIncome - essentialExpenses)
+  const safeToSave = Math.floor(safeToUseAmount * 0.2)
+  const rainyWeekIncome = 4100
+  const bufferSupportNeeded = Math.max(0, incomeFloor - rainyWeekIncome)
+  const rainyDayDetected = rainyWeekIncome < incomeFloor
+  const bufferAmountUsed = Math.min(bufferSupportNeeded, safeToSave)
+  const remainingAfterBuffer = Math.max(0, bufferSupportNeeded - safeToSave)
+  const recommendedCreditLimit = Math.min(5000, Math.max(500, Math.floor(safeToUseAmount * 0.65)))
+
+  // Explainable GigCash Score
+  const incomeStabilityPoints = 180
+  const expenseCoveragePoints = 160
+  const repaymentCapacityPoints = 150
+  const bufferProtectionPoints = 140
+  const responsibleBorrowingPoints = 112
+  const gigCashScore =
+    300 +
+    incomeStabilityPoints +
+    expenseCoveragePoints +
+    repaymentCapacityPoints +
+    bufferProtectionPoints +
+    responsibleBorrowingPoints
 
   const weeklyRepayment = Math.ceil(loanAmount / repaymentPeriod)
 
@@ -270,7 +298,6 @@ function App() {
                           </span>
                         )}
                       </div>
-
                     </div>
                   )
                 }
@@ -291,18 +318,58 @@ function App() {
               the next repayment instead of forcing you into a difficult week.
             </p>
 
-            {!paused && remainingBalance > 0 && (
-              <button
-                onClick={() => setPaused(true)}
-                className="w-full border border-yellow-500/40 text-yellow-400 font-semibold py-3 rounded-xl hover:bg-yellow-500/10 transition mb-3"
-              >
-                Simulate Rainy-Day Pause
-              </button>
+            {!paused && remainingBalance > 0 && rainyDayDetected && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 mb-4">
+                <p className="text-yellow-400 font-semibold text-lg">
+                  ⚠️ Rainy Day Detected
+                </p>
+                <p className="text-slate-300 mt-2">
+                  Recent simulated income of ₹{rainyWeekIncome} is ₹{bufferSupportNeeded} below your
+                  ₹{incomeFloor} weekly income floor. GigCash recommends using your buffer before taking
+                  additional credit.
+                </p>
+                <div className="grid md:grid-cols-2 gap-3 mt-4">
+                  <div className="bg-slate-900/60 rounded-xl p-4">
+                    <p className="text-slate-400 text-xs">Buffer support available</p>
+                    <p className="text-xl font-bold mt-1">₹{safeToSave}</p>
+                  </div>
+                  <div className="bg-slate-900/60 rounded-xl p-4">
+                    <p className="text-slate-400 text-xs">Shortfall after buffer</p>
+                    <p className="text-xl font-bold mt-1">₹{remainingAfterBuffer}</p>
+                  </div>
+                </div>
+                {!bufferUsed ? (
+                  <button
+                    onClick={() => {
+                      setBufferUsed(true)
+                      setPaused(true)
+                    }}
+                    className="w-full bg-yellow-400 text-slate-950 font-semibold py-3 rounded-xl mt-4 hover:bg-yellow-300 transition"
+                  >
+                    Use Buffer & Pause Repayment
+                  </button>
+                ) : (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mt-4">
+                    <p className="text-emerald-400 font-semibold">🛡️ Buffer Used</p>
+                    <p className="text-sm text-slate-300 mt-1">
+                      ₹{bufferAmountUsed} of simulated buffer support is protecting this week's income floor.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!paused && remainingBalance > 0 && !rainyDayDetected && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mb-4">
+                <p className="text-emerald-400 font-semibold">✓ Income Floor Covered</p>
+                <p className="text-sm text-slate-300 mt-1">
+                  Recent income is above your selected floor, so no rainy-day protection is needed.
+                </p>
+              </div>
             )}
 
             {paused && remainingBalance > 0 && (
               <div>
-
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
                   <p className="text-yellow-400 font-semibold">
                     ⏸ Repayment Paused
@@ -333,7 +400,6 @@ function App() {
                 >
                   Resume & Make Next Payment
                 </button>
-
               </div>
             )}
 
@@ -472,13 +538,75 @@ function App() {
               </p>
 
               <p className="text-5xl font-bold mt-2">
-                742
+                {gigCashScore}
               </p>
 
               <p className="text-green-400 mt-2">
                 Good repayment capacity
               </p>
 
+            </div>
+
+            <div className="bg-slate-900 border border-green-500/30 rounded-2xl p-6 mt-5 text-left">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">
+                  📊 Why this score?
+                </h2>
+                <span className="text-xs text-green-400 font-semibold border border-green-500/30 rounded-full px-3 py-1">
+                  Explainable
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-slate-800 rounded-xl p-4">
+                  <div>
+                    <p className="font-medium">Income stability</p>
+                    <p className="text-xs text-slate-400 mt-1">Consistent earning pattern</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">+{incomeStabilityPoints}</span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-800 rounded-xl p-4">
+                  <div>
+                    <p className="font-medium">Essential expense coverage</p>
+                    <p className="text-xs text-slate-400 mt-1">Essentials are protected first</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">+{expenseCoveragePoints}</span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-800 rounded-xl p-4">
+                  <div>
+                    <p className="font-medium">Repayment capacity</p>
+                    <p className="text-xs text-slate-400 mt-1">Weekly repayment fits the income profile</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">+{repaymentCapacityPoints}</span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-800 rounded-xl p-4">
+                  <div>
+                    <p className="font-medium">Buffer protection</p>
+                    <p className="text-xs text-slate-400 mt-1">Rainy-week support reduces repayment stress</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">+{bufferProtectionPoints}</span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-800 rounded-xl p-4">
+                  <div>
+                    <p className="font-medium">Responsible borrowing</p>
+                    <p className="text-xs text-slate-400 mt-1">Credit limit considers safe-to-use income</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">+{responsibleBorrowingPoints}</span>
+                </div>
+              </div>
+
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mt-4">
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  <span className="text-green-400 font-semibold">How it works:</span>{" "}
+                  GigCash starts at 300 and adds points for income stability,
+                  essential-expense coverage, repayment capacity, buffer protection,
+                  and responsible borrowing behavior.
+                </p>
+              </div>
             </div>
 
             <button
@@ -515,6 +643,14 @@ function App() {
           <p className="text-slate-400 mt-2 mb-8">
             Request a small amount based on your current needs.
           </p>
+
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-5 mb-6">
+            <p className="text-purple-400 font-semibold">🎯 Smart Credit Limit</p>
+            <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+              GigCash recommends up to <span className="font-bold text-white">₹{recommendedCreditLimit}</span> based on your
+              safe-to-use income. Requesting above this amount may increase repayment pressure.
+            </p>
+          </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-7">
 
@@ -629,6 +765,163 @@ function App() {
 
               <p className="text-3xl font-bold mt-2">
                 ₹2,300
+              </p>
+            </div>
+
+          </div>
+
+          <div className="bg-gradient-to-br from-emerald-500/10 to-slate-900 border border-emerald-500/30 rounded-3xl p-7 mt-6">
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-emerald-400 text-sm font-semibold tracking-wide">
+                  🛡️ ADAPTIVE INCOME BUFFER
+                </p>
+
+                <h2 className="text-2xl font-semibold mt-2">
+                  Safe-to-save recommendation
+                </h2>
+
+                <p className="text-slate-400 mt-2 leading-relaxed">
+                  GigCash protects your essential expenses first and recommends
+                  only a safe portion of the remaining income for your buffer.
+                </p>
+              </div>
+
+              <div className="text-4xl">💰</div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4 mt-6">
+              <div className="bg-slate-800/80 rounded-2xl p-5">
+                <p className="text-slate-400 text-sm">Income after essentials</p>
+                <p className="text-2xl font-bold mt-2">₹{safeToUseAmount}</p>
+              </div>
+
+              <div className="bg-slate-800/80 rounded-2xl p-5">
+                <p className="text-slate-400 text-sm">Recommended to save</p>
+                <p className="text-2xl font-bold text-emerald-400 mt-2">₹{safeToSave}</p>
+              </div>
+
+              <div className="bg-slate-800/80 rounded-2xl p-5">
+                <p className="text-slate-400 text-sm">Still flexible to use</p>
+                <p className="text-2xl font-bold mt-2">₹{safeToUseAmount - safeToSave}</p>
+              </div>
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 mt-5">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                <span className="text-emerald-400 font-semibold">Why ₹{safeToSave}?</span>{" "}
+                Your ₹{essentialExpenses} essential expenses are protected first. From the
+                remaining ₹{safeToUseAmount}, GigCash recommends only 20% as a safe buffer contribution.
+              </p>
+            </div>
+
+          </div>
+
+          <div className="bg-slate-900 border border-blue-500/30 rounded-3xl p-7 mt-6">
+            <p className="text-blue-400 text-sm font-semibold tracking-wide">
+              🎯 INCOME FLOOR / SALARY MODE
+            </p>
+
+            <h2 className="text-2xl font-semibold mt-2">
+              Protect your minimum weekly needs
+            </h2>
+
+            <p className="text-slate-400 mt-2 leading-relaxed">
+              Choose the minimum amount you need each week. If income falls below this floor,
+              GigCash can use the buffer to cover the shortfall before suggesting new credit.
+            </p>
+
+            <div className="mt-6">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-400">Your weekly income floor</span>
+                <span className="font-semibold">₹{incomeFloor}</span>
+              </div>
+
+              <input
+                type="range"
+                min="3000"
+                max="7000"
+                step="500"
+                value={incomeFloor}
+                onChange={(e) => setIncomeFloor(Number(e.target.value))}
+                className="w-full accent-blue-500"
+              />
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4 mt-6">
+              <div className="bg-slate-800 rounded-2xl p-5">
+                <p className="text-slate-400 text-sm">Rainy-week income</p>
+                <p className="text-2xl font-bold mt-2">₹{rainyWeekIncome}</p>
+              </div>
+
+              <div className="bg-slate-800 rounded-2xl p-5">
+                <p className="text-slate-400 text-sm">Buffer support needed</p>
+                <p className="text-2xl font-bold text-yellow-400 mt-2">₹{bufferSupportNeeded}</p>
+              </div>
+
+              <div className="bg-slate-800 rounded-2xl p-5">
+                <p className="text-slate-400 text-sm">Protection status</p>
+                <p className={`text-lg font-bold mt-2 ${bufferSupportNeeded > 0 ? "text-yellow-400" : "text-green-400"}`}>
+                  {bufferSupportNeeded > 0 ? "Buffer activated" : "Floor covered"}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <div className={`border rounded-3xl p-7 mt-6 ${rainyDayDetected ? "bg-yellow-500/10 border-yellow-500/30" : "bg-emerald-500/10 border-emerald-500/30"}`}>
+            <p className={`text-sm font-semibold tracking-wide ${rainyDayDetected ? "text-yellow-400" : "text-emerald-400"}`}>
+              🌧️ SMART RAINY-DAY DETECTION
+            </p>
+            <h2 className="text-2xl font-semibold mt-2">
+              {rainyDayDetected ? "Rainy Day Detected" : "Income Floor Is Safe"}
+            </h2>
+            <p className="text-slate-300 mt-2 leading-relaxed">
+              {rainyDayDetected
+                ? `Your simulated income is ₹${bufferSupportNeeded} below your ₹${incomeFloor} weekly floor. GigCash prioritises your buffer before additional borrowing.`
+                : `Your simulated income of ₹${rainyWeekIncome} is meeting your ₹${incomeFloor} weekly floor.`}
+            </p>
+            {rainyDayDetected && (
+              <div className="grid md:grid-cols-3 gap-4 mt-5">
+                <div className="bg-slate-900/60 rounded-2xl p-4">
+                  <p className="text-slate-400 text-sm">Income</p>
+                  <p className="text-xl font-bold mt-1">₹{rainyWeekIncome}</p>
+                </div>
+                <div className="bg-slate-900/60 rounded-2xl p-4">
+                  <p className="text-slate-400 text-sm">Your floor</p>
+                  <p className="text-xl font-bold mt-1">₹{incomeFloor}</p>
+                </div>
+                <div className="bg-slate-900/60 rounded-2xl p-4">
+                  <p className="text-slate-400 text-sm">Shortfall</p>
+                  <p className="text-xl font-bold text-yellow-400 mt-1">₹{bufferSupportNeeded}</p>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-slate-400 mt-5">
+              Demo rule: a rainy day is detected whenever recent simulated income falls below your selected income floor.
+            </p>
+          </div>
+
+          <div className="bg-slate-900 border border-purple-500/30 rounded-3xl p-7 mt-6">
+            <p className="text-purple-400 text-sm font-semibold tracking-wide">
+              🎯 SMART CREDIT LIMIT
+            </p>
+
+            <h2 className="text-2xl font-semibold mt-2">
+              Borrow within a safer range
+            </h2>
+
+            <p className="text-slate-400 mt-2 leading-relaxed">
+              GigCash uses your safe-to-use income to recommend a responsible credit limit.
+              You can still request more, but the app clearly explains the risk.
+            </p>
+
+            <div className="bg-slate-800 rounded-2xl p-6 mt-6">
+              <p className="text-slate-400 text-sm">Recommended credit limit</p>
+              <p className="text-4xl font-bold text-purple-400 mt-2">₹{recommendedCreditLimit}</p>
+              <p className="text-sm text-slate-400 mt-2">
+                Based on ₹{safeToUseAmount} of income remaining after essential expenses.
               </p>
             </div>
 
@@ -818,10 +1111,7 @@ function App() {
                     }
 
                     try {
-                      console.log(
-                        "Sending OTP request for:",
-                        cleanPhone
-                      )
+                      console.log("Sending OTP request for:", cleanPhone)
 
                       const response = await fetch(
                         "http://localhost:4000/api/auth/send-otp",
@@ -838,29 +1128,16 @@ function App() {
 
                       const data = await response.json()
 
-                      console.log(
-                        "Backend response:",
-                        data
-                      )
+                      console.log("Backend response:", data)
 
                       if (response.ok && data.success) {
-                        alert(
-                          "OTP sent successfully. Demo OTP: 123456"
-                        )
-
+                        alert("OTP sent successfully. Demo OTP: 123456")
                         setOtpSent(true)
                       } else {
-                        alert(
-                          data.message ||
-                            "Failed to send OTP"
-                        )
+                        alert(data.message || "Failed to send OTP")
                       }
                     } catch (error) {
-                      console.error(
-                        "OTP request failed:",
-                        error
-                      )
-
+                      console.error("OTP request failed:", error)
                       alert(
                         "Could not connect to GigCash backend. Make sure the backend is running on port 4000."
                       )
