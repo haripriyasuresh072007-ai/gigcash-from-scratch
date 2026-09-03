@@ -1,0 +1,138 @@
+const express = require("express");
+const { z } = require("zod");
+const pool = require("../db");
+
+const router = express.Router();
+
+const incomeSyncSchema = z.object({
+  userId: z.number().int().positive(),
+  source: z.string().min(1),
+  weeklyEarnings: z
+    .array(
+      z.object({
+        week: z.string().min(1),
+        amount: z.number().int().nonnegative(),
+      })
+    )
+    .min(1),
+});
+
+// POST /api/income/sync
+router.post("/sync", async (req, res) => {
+  try {
+    const result = incomeSyncSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error.issues[0].message,
+      });
+    }
+
+    const { userId, source, weeklyEarnings } = result.data;
+
+    const userCheck = await pool.query(
+      "SELECT id FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    for (const earning of weeklyEarnings) {
+      await pool.query(
+        `
+        INSERT INTO income_snapshots
+        (user_id, source, week_start, amount_paise)
+        VALUES ($1, $2, $3, $4)
+        `,
+        [userId, source, earning.week, earning.amount * 100]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "Income synced successfully",
+      weeksSynced: weeklyEarnings.length,
+    });
+  } catch (error) {
+    console.error("Income sync error:", error);
+
+    res.status(500).json({
+      success: false,
+      error: "Unable to sync income",
+    });
+  }
+});
+
+// GET /api/income/summary/:userId
+router.get("/summary/:userId", async (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid user ID",
+      });
+    }
+
+    const incomeResult = await pool.query(
+      `
+      SELECT amount_paise
+      FROM income_snapshots
+      WHERE user_id = $1
+      ORDER BY week_start DESC
+      `,
+      [userId]
+    );
+
+    if (incomeResult.rows.length === 0) {
+      return res.json({
+        success: true,
+        averageWeeklyIncome: 0,
+        essentialExpenses: 0,
+        safeToUseAmount: 0,
+        safeToSaveAmount: 0,
+      });
+    }
+
+    const amounts = incomeResult.rows.map(
+      (row) => Number(row.amount_paise) / 100
+    );
+
+    const averageWeeklyIncome =
+      amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
+
+    // Demo assumption for essential weekly expenses.
+    const essentialExpenses = 4500;
+
+    const safeToUseAmount = Math.max(
+      0,
+      Math.floor(averageWeeklyIncome - essentialExpenses)
+    );
+
+    const safeToSaveAmount = Math.floor(safeToUseAmount * 0.2);
+
+    res.json({
+      success: true,
+      averageWeeklyIncome: Math.floor(averageWeeklyIncome),
+      essentialExpenses,
+      safeToUseAmount,
+      safeToSaveAmount,
+    });
+  } catch (error) {
+    console.error("Income summary error:", error);
+
+    res.status(500).json({
+      success: false,
+      error: "Unable to calculate income summary",
+    });
+  }
+});
+
+module.exports = router;

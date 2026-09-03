@@ -38,6 +38,9 @@ function App() {
   const [activeLoan, setActiveLoan] = useState(false)
   const [finalStatus, setFinalStatus] = useState(false)
   const [adminDashboard, setAdminDashboard] = useState(false)
+  const [adminApplications, setAdminApplications] = useState([])
+  const [adminLoading, setAdminLoading] = useState(false)
+  const [adminError, setAdminError] = useState("")
 
   // Payday Bridge — a separate, short-term product from the main credit line
   const [bridgeScreen, setBridgeScreen] = useState(false)
@@ -124,6 +127,36 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLoan])
+
+  // ---- Admin Dashboard: load real applications from PostgreSQL backend ----
+  useEffect(() => {
+    if (!adminDashboard) return
+
+    const loadAdminApplications = async () => {
+      try {
+        setAdminLoading(true)
+        setAdminError("")
+
+        const response = await fetch("http://localhost:4000/api/admin/applications")
+        const data = await response.json()
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Failed to load admin applications")
+        }
+
+        setAdminApplications(data.applications || [])
+      } catch (error) {
+        console.error("Admin dashboard error:", error)
+        setAdminError(
+          "Unable to load admin applications. Make sure the GigCash backend is running on port 4000."
+        )
+      } finally {
+        setAdminLoading(false)
+      }
+    }
+
+    loadAdminApplications()
+  }, [adminDashboard])
 
   // ================= PAYDAY BRIDGE CONFIRMED =================
   if (bridgeConfirmed) {
@@ -272,49 +305,34 @@ function App() {
 
   // ================= ADMIN DASHBOARD =================
   if (adminDashboard) {
-    const applications = [
-      {
-        worker: "Worker A",
-        amount: 1500,
-        score: 742,
-        anomaly: "Clear",
-        income: "Stable",
-        decision: "Eligible",
-        reason: "Income covers essential expenses and repayment capacity is healthy.",
-      },
-      {
-        worker: "Worker B",
-        amount: 4000,
-        score: 618,
-        anomaly: "Review",
-        income: "Rainy Week",
-        decision: "Under Review",
-        reason: "Requested weekly repayment exceeds the 20% income cap at short tenures.",
-      },
-      {
-        worker: "Worker C",
-        amount: 2500,
-        score: 701,
-        anomaly: "Clear",
-        income: "Stable",
-        decision: "Eligible",
-        reason: "Good income stability with sufficient repayment capacity.",
-      },
-    ]
+    const applications = adminApplications
+
+    const eligibleCount = applications.filter(
+      (application) => application.decision === "Eligible"
+    ).length
+
+    const reviewCount = applications.filter(
+      (application) => application.decision === "Under Review"
+    ).length
+
+    const averageScore =
+      applications.length > 0
+        ? Math.round(
+            applications.reduce(
+              (total, application) => total + Number(application.score || 0),
+              0
+            ) / applications.length
+          )
+        : 0
 
     return (
       <div className="min-h-screen bg-[#0f1420] text-[#f5f3ef] px-6 py-10 font-sans">
         <div className="max-w-6xl mx-auto">
-
           <div className="flex items-center justify-between gap-4 mb-8">
             <div>
               <p className="text-[#d9a441] font-semibold text-lg" style={{fontFamily: '"Fraunces", serif'}}>GigCash</p>
-              <h1 className="text-3xl font-semibold mt-2" style={{fontFamily: '"Fraunces", serif'}}>
-                Admin dashboard
-              </h1>
-              <p className="text-[#98a2b8] mt-2">
-                Review applications using transparent, explainable signals.
-              </p>
+              <h1 className="text-3xl font-semibold mt-2" style={{fontFamily: '"Fraunces", serif'}}>Admin dashboard</h1>
+              <p className="text-[#98a2b8] mt-2">Review applications using transparent, explainable signals.</p>
             </div>
 
             <button
@@ -328,34 +346,30 @@ function App() {
           <div className="grid md:grid-cols-4 gap-4 mb-6">
             <div className="bg-[#161d2e] border border-[#2a3552] rounded-xl p-5">
               <p className="text-[#98a2b8] text-sm">Applications</p>
-              <p className="text-3xl font-semibold mt-2" style={{fontFamily: '"Fraunces", serif'}}>3</p>
+              <p className="text-3xl font-semibold mt-2" style={{fontFamily: '"Fraunces", serif'}}>{applications.length}</p>
             </div>
 
             <div className="bg-[#161d2e] border border-[#2a3552] rounded-xl p-5">
               <p className="text-[#98a2b8] text-sm">Eligible</p>
-              <p className="text-3xl font-semibold text-[#5fae8c] mt-2" style={{fontFamily: '"Fraunces", serif'}}>2</p>
+              <p className="text-3xl font-semibold text-[#5fae8c] mt-2" style={{fontFamily: '"Fraunces", serif'}}>{eligibleCount}</p>
             </div>
 
             <div className="bg-[#161d2e] border border-[#2a3552] rounded-xl p-5">
               <p className="text-[#98a2b8] text-sm">Under review</p>
-              <p className="text-3xl font-semibold text-[#e0913c] mt-2" style={{fontFamily: '"Fraunces", serif'}}>1</p>
+              <p className="text-3xl font-semibold text-[#e0913c] mt-2" style={{fontFamily: '"Fraunces", serif'}}>{reviewCount}</p>
             </div>
 
             <div className="bg-[#161d2e] border border-[#2a3552] rounded-xl p-5">
               <p className="text-[#98a2b8] text-sm">Average score</p>
-              <p className="text-3xl font-semibold text-[#6ea3d8] mt-2" style={{fontFamily: '"Fraunces", serif'}}>687</p>
+              <p className="text-3xl font-semibold text-[#6ea3d8] mt-2" style={{fontFamily: '"Fraunces", serif'}}>{averageScore}</p>
             </div>
           </div>
 
           <div className="bg-[#161d2e] border border-[#2a3552] rounded-2xl p-7">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-xl font-semibold" style={{fontFamily: '"Fraunces", serif'}}>
-                  Application review
-                </h2>
-                <p className="text-sm text-[#98a2b8] mt-1">
-                  Decisions are based on transparent simulated signals.
-                </p>
+                <h2 className="text-xl font-semibold" style={{fontFamily: '"Fraunces", serif'}}>Application review</h2>
+                <p className="text-sm text-[#98a2b8] mt-1">Live application data from the GigCash PostgreSQL backend.</p>
               </div>
 
               <span className="text-xs text-[#5fae8c] font-semibold border border-[#5fae8c]/30 rounded-full px-3 py-1">
@@ -363,25 +377,48 @@ function App() {
               </span>
             </div>
 
+            {adminLoading && (
+              <div className="bg-[#1e2740] rounded-xl p-5 text-[#98a2b8]">
+                Loading applications from the backend...
+              </div>
+            )}
+
+            {adminError && (
+              <div className="bg-[#e0913c]/10 border border-[#e0913c]/30 rounded-xl p-5 mb-4">
+                <p className="text-[#e0913c] font-semibold">Admin data unavailable</p>
+                <p className="text-sm text-[#f5f3ef]/80 mt-2">{adminError}</p>
+              </div>
+            )}
+
+            {!adminLoading && !adminError && applications.length === 0 && (
+              <div className="bg-[#1e2740] rounded-xl p-5 text-[#98a2b8]">
+                No loan applications found in the database.
+              </div>
+            )}
+
             <div className="space-y-4">
               {applications.map((application) => (
-                <div key={application.worker} className="bg-[#1e2740] rounded-xl p-5">
+                <div key={application.loanId} className="bg-[#1e2740] rounded-xl p-5">
                   <div className="grid lg:grid-cols-7 gap-4 items-center">
                     <div>
                       <p className="text-xs text-[#98a2b8]">Worker</p>
                       <p className="font-semibold mt-1 flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-[#98a2b8]" /> {application.worker}
+                        <User className="w-4 h-4 text-[#98a2b8]" />
+                        {application.worker}
                       </p>
+                      <p className="text-xs text-[#98a2b8] mt-1">Loan #{application.loanId}</p>
                     </div>
 
                     <div>
                       <p className="text-xs text-[#98a2b8]">Loan amount</p>
                       <p className="font-semibold mt-1">₹{application.amount}</p>
+                      <p className="text-xs text-[#98a2b8] mt-1">{application.repaymentPeriodWeeks} weeks</p>
                     </div>
 
                     <div>
                       <p className="text-xs text-[#98a2b8]">GigCash Score</p>
                       <p className="font-semibold mt-1">{application.score}</p>
+                      <p className="text-xs text-[#98a2b8] mt-1">+{application.breakdownPoints} points</p>
                     </div>
 
                     <div>
@@ -389,14 +426,11 @@ function App() {
                       <p className={`font-semibold mt-1 flex items-center gap-1.5 ${
                         application.anomaly === "Clear" ? "text-[#5fae8c]" : "text-[#e0913c]"
                       }`}>
-                        {application.anomaly === "Clear" ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                        {application.anomaly === "Clear"
+                          ? <Check className="w-4 h-4" />
+                          : <AlertTriangle className="w-4 h-4" />}
                         {application.anomaly}
                       </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-[#98a2b8]">Income</p>
-                      <p className="font-semibold mt-1">{application.income}</p>
                     </div>
 
                     <div>
@@ -405,6 +439,15 @@ function App() {
                         application.decision === "Eligible" ? "text-[#5fae8c]" : "text-[#e0913c]"
                       }`}>
                         {application.decision}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-[#98a2b8]">Score breakdown</p>
+                      <p className="text-xs text-[#f5f3ef]/70 mt-1 leading-relaxed">
+                        Income {application.breakdown?.incomeStability || 0} ·
+                        Expenses {application.breakdown?.expenseCoverage || 0} ·
+                        Repayment {application.breakdown?.repaymentCapacity || 0}
                       </p>
                     </div>
 
@@ -423,14 +466,15 @@ function App() {
                 <span>
                   <span className="text-[#6ea3d8] font-semibold">Reviewer guidance: </span>
                   An anomaly flag does not automatically mean fraud or rejection.
-                  It means the simulated application may need additional human review.
+                  It means the application may need additional human review.
+                  Every decision shown here is based on explicit, traceable rules.
                 </span>
               </p>
             </div>
           </div>
 
           <p className="text-center text-[#98a2b8]/70 text-sm mt-6">
-            Demo admin dashboard — simulated applications only.
+            Demo admin dashboard — live data from the local PostgreSQL backend.
           </p>
         </div>
       </div>
